@@ -19,6 +19,8 @@ from .insert import insert_rows
 from copy import deepcopy
 from langchain_core.tools import StructuredTool
 from ..embed.bm25 import BM25SparseEmbedding
+from concurrent.futures import ThreadPoolExecutor, as_completed
+import time
 
 get_resolve_path = lambda path, file=__file__: (Path(file).parent / Path(path)).resolve()
 
@@ -155,17 +157,15 @@ class MedicalHybridKnowledgeBase:
         index_params = self.client.prepare_index_params()
         index_params.add_index(
             field_name="summary_dense", 
-            index_type="HNSW",
+            index_type="FLAT",
             index_name="summary_dense_index",
-            metric_type="COSINE",
-            params={ "M": 32, "efConstruction": 200 }
+            metric_type="COSINE"
         )
         index_params.add_index(
             field_name="text_dense",
-            index_type="HNSW",
+            index_type="FLAT",
             index_name="text_dense_index",
-            metric_type="COSINE",
-            params={ "M": 32, "efConstruction": 200 }
+            metric_type="COSINE"
         )
         if self.embedding_config.text_sparse.provider == "self":
             index_params.add_index(
@@ -270,7 +270,11 @@ class MedicalHybridKnowledgeBase:
         single_search_request: SingleSearchRequest
     ) -> AnnSearchRequest:
         """ 构建子 AnnSearchRequest 请求"""
+        t0 = time.time()
+        logger.info(f"[Perf] Start encoding for {single_search_request.anns_field}")
         data = self._encode_query(query=query, anns_field=single_search_request.anns_field)
+        logger.info(f"[Perf] Encoding {single_search_request.anns_field} took {time.time()-t0:.4f}s")
+        
         search_param = {
             "data": [data],
             "anns_field": single_search_request.anns_field,
@@ -288,18 +292,35 @@ class MedicalHybridKnowledgeBase:
         search: SearchRequest
     ):
         """ Milvus 原生混合查询 https://milvus.io/docs/zh/multi-vector-search.md"""
+        t_start = time.time()
         anns = []
-        for item in search.requests:  # 构建子查询
-            anns.append(
-                self._build_ann_search_request(
-                    query=search.query, 
-                    single_search_request=item
+        
+        # 使用 ThreadPoolExecutor 并行处理 Embedding 和构建 AnnSearchRequest
+        logger.info("[Perf] Starting parallel embedding...")
+        with ThreadPoolExecutor() as executor:
+            futures = []
+            for i, item in enumerate(search.requests):
+                futures.append(
+                    executor.submit(
+                        self._build_ann_search_request,
+                        query=search.query,
+                        single_search_request=item
+                    )
                 )
-            )
+            
+            # 按顺序获取结果
+            for future in futures:
+                anns.append(future.result())
+        
+        logger.info(f"[Perf] Parallel embedding finished in {time.time()-t_start:.4f}s")
+
         if search.fuse.method == "rrf":
             rank = RRFRanker(search.fuse.k)
         elif search.fuse.method == "weighted":
             rank = WeightedRanker(*search.fuse.weights)
+            
+        t_milvus = time.time()
+        logger.info("[Perf] Starting Milvus hybrid_search...")
         result = self.client.hybrid_search(
             collection_name=search.collection_name,
             reqs=anns,
@@ -307,6 +328,8 @@ class MedicalHybridKnowledgeBase:
             limit=search.limit,
             output_fields=search.output_fields
         )
+        logger.info(f"[Perf] Milvus hybrid_search took {time.time()-t_milvus:.4f}s")
+        
         return result
     
     def search(self, req: SearchRequest) -> List[Document]:

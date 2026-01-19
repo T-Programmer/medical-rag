@@ -84,6 +84,9 @@ class Vocabulary:
             path = str(default_vocab_dir) + path
         else:
             tmp = path + ".tmp"
+        
+        # 确保目录存在
+        Path(tmp).parent.mkdir(parents=True, exist_ok=True)
             
         with (gzip.open(tmp, "wb") if compress else open(tmp, "wb")) as f:
             f.write(data)

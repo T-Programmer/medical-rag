@@ -52,7 +52,8 @@ def create_embedding_client(config: DenseConfig) -> Embeddings:
     if config.provider == "openai":
         kwargs = {
             "model": config.model,
-            "dimensions": config.dimension
+            "dimensions": config.dimension,
+            "check_embedding_ctx_length": False,  # 禁用上下文长度检查，避免不必要的 token 计算
         }
         
         if config.api_key:

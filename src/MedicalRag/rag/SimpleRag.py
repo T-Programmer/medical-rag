@@ -62,14 +62,39 @@ class SimpleRAG(BasicRAG):
 
         def strip_think_and_time(msg: AIMessage):
             text = msg.content
+
             cleaned = re.sub(r"<think>.*?</think>\s*", "", text, flags=re.DOTALL)
-            dur = msg.response_metadata.get("total_duration", 0) / 1e9
+            # 优先使用 Python 侧记录的时间（秒），如果没有则尝试使用 metadata 中的 total_duration（纳秒）
+            if "python_duration_seconds" in msg.response_metadata:
+                dur = msg.response_metadata["python_duration_seconds"]
+            else:
+                dur = msg.response_metadata.get("total_duration", 0) / 1e9
             return {"answer": cleaned.strip(), "generate_time": dur}
 
+        def timed_retrieval(inputs: dict):
+            start = time.time()
+            logger.info(f"====== [Analysis] 开始检索流程 (Query: {inputs.get('input')}) ======")
+            result = self.milvus_retriever.invoke(inputs)
+            duration = time.time() - start
+            logger.info(f"====== [Analysis] 检索流程结束，总耗时: {duration:.4f}s ======")
+            return result
+
+        def timed_generation(prompt_input):
+            start = time.time()
+            logger.info("====== [Analysis] 开始 LLM 生成 ======")
+            result = self.llm.invoke(prompt_input)
+            duration = time.time() - start
+            logger.info(f"====== [Analysis] LLM 生成结束，耗时: {duration:.4f}s ======")
+            
+            # 记录时间到 metadata 以便后续提取
+            if result.response_metadata is None:
+                result.response_metadata = {}
+            result.response_metadata["python_duration_seconds"] = duration
+            return result
 
         # 1) 检索：从 inputs["input"] 取查询，再喂给 retriever，结果放入 inputs["documents"]
         retrieve = RunnablePassthrough.assign(
-            milvus_result=self.milvus_retriever
+            milvus_result=RunnableLambda(timed_retrieval)
         ).with_config(run_name="retrieve_documents")
 
         # 2) 格式化：把 documents 合成一个字符串，放入 inputs["all_document_str"]
@@ -80,7 +105,7 @@ class SimpleRAG(BasicRAG):
         # 3) 生成：prompt -> llm -> 清洗
         generate = (
             self.prompt.with_config(run_name="apply_prompt")
-            | self.llm.with_config(run_name="generate")
+            | RunnableLambda(timed_generation)
             | RunnableLambda(strip_think_and_time)
         )
 
@@ -117,7 +142,8 @@ class SimpleRAG(BasicRAG):
             }
         except Exception as e:
             logger.error(f"RAG处理失败: {e}")
-            print(traceback(e))
+            import traceback
+            traceback.print_exc()  # 使用 print_exc() 而不是 print(traceback(e))
             error_msg = "抱歉，处理您的问题时出现错误，请稍后再试。"
             if return_document:
                 return {

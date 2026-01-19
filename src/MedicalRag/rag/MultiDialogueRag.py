@@ -32,7 +32,8 @@ class MultiDialogueRag(BasicRAG):
         if config.multi_dialogue_rag.smith_debug:
             os.environ["LANGCHAIN_TRACING_V2"] = "true"
             os.environ["LANGCHAIN_PROJECT"] = "rag-dev"
-            
+        
+        # 知识库，混合检索器，llm
         self.knowledge_base = MedicalHybridKnowledgeBase(config)
         self.self_retriever: BaseRetriever = MedicalHybridRetriever(self.knowledge_base, self.search_config)
         self.llm = create_llm_client(config.llm)
@@ -242,7 +243,7 @@ class MultiDialogueRag(BasicRAG):
         def do_retrieve(inputs: dict):
             logger.info(f"改写后的问题: {inputs['llm_rewritten_query']['msg']}")
             return self.self_retriever.invoke({"input": inputs["llm_rewritten_query"]["msg"]})
-
+        
         def do_format(inputs: dict) -> str:
             documents: List[Document] = inputs["milvus_result"]["documents"]
             all_document_str = self._build_document_context(

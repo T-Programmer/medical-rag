@@ -123,7 +123,7 @@ class IngestionPipeline:
             
             # 3. 批量插入
             logger.info(f"开始插入 {len(documents)} 个文档...")
-            batch_size = 10
+            batch_size = 100
             total_inserted = 0
             
             for i in tqdm(range(0, len(documents), batch_size)):
@@ -140,5 +140,5 @@ class IngestionPipeline:
             
         except Exception as e:
             logger.error(f"高级入库流水线失败: {e}")
-            print(traceback(e))
+            print(traceback.format_exc())
             return False

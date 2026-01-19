@@ -1,11 +1,27 @@
-**/raw_data/
-*.bin
-
-# 忽略 foo/ 目录下所有直接子项
+# Milvus
+/Milvus/volumes/
 /Milvus/*
-# 但不要忽略 a 和 b
 !/Milvus/examples.py
 !/Milvus/standalone_embed.sh
+
+# Data files
+*.jsonl
+*.csv
+*.pkl
+*.pickle
+*.parquet
+*.db
+*.sqlite
+*.bin
+*.pb
+
+# Compressed files
+*.gz
+*.zip
+*.tar.gz
+*.7z
+*.rar
+*.tgz
 
 # Python
 .DS_Store
@@ -13,6 +29,14 @@
 **/__pycache__/
 **/.pytest_cache/
 **/*.pyc
-**/*.pb
+
+# Logs and others
+*.log
 log
-vocab.pkl.gz
+**/raw_data/
+
+.env
+
+data/qa_50000.jsonl
+
+/volumes/*data/qa_50000.jsonl

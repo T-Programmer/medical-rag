@@ -11,7 +11,7 @@ logging.getLogger("httpx").setLevel(logging.WARNING)
 if __name__ == "__main__":
     config_manager = ConfigLoader()
     config_manager.change({
-        "llm.model":"qwen3:32b",
+        "llm.model":"qwen3:8b",
         "agent.network_search_cnt": 5
     })
     power_model = ChatTongyi(model="qwen-plus", temperature=0.1)

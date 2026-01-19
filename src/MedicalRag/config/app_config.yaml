@@ -1,21 +1,33 @@
 milvus:
   uri: http://localhost:19530
-  token: null
+  token: root:Milvus
   collection_name: medical_knowledge
-  drop_old: true
+  drop_old: False
   auto_id: false
 
 embedding:
   summary_dense:
     provider: ollama
-    model: bge-m3:latest
+    model: qwen3-embedding:0.6b
     base_url: http://localhost:11434
     dimension: 1024
   text_dense:
     provider: ollama
-    model: bge-m3:latest
+    model: qwen3-embedding:0.6b
     base_url: http://localhost:11434
     dimension: 1024
+  # summary_dense:
+  #   provider: openai
+  #   model: text-embedding-v4
+  #   base_url: https://dashscope.aliyuncs.com/compatible-mode/v1
+  #   dimension: 1024
+
+  # text_dense:
+  #   provider: openai
+  #   model: text-embedding-v4
+  #   base_url: https://dashscope.aliyuncs.com/compatible-mode/v1
+  #   dimension: 1024
+
   text_sparse:
     provider: self
     vocab_path_or_name: vocab.pkl.gz
@@ -27,11 +39,20 @@ embedding:
       workers: 8
       chunksize: 64
 
+# llm:
+#   provider: ollama
+#   model: qwen3:8b
+#   base_url: http://localhost:11434
+#   temperature: 0.1
+
+
 llm:
-  provider: ollama
-  model: qwen3:32b
-  base_url: http://localhost:11434
+  provider: openai
+  model: qwen-plus-2025-12-01
+  base_url: https://dashscope.aliyuncs.com/compatible-mode/v1
   temperature: 0.1
+  api_key: sk-330db902381c46828a0cc0082a520bd4
+
 
 data:
   summary_field: question
@@ -53,6 +74,6 @@ multi_dialogue_rag:
 agent:
   mode: analysis
   max_attempts: 2  # 每一个子目标查询的最大重试次数，否则进行联网搜索
-  network_search_enabled: True  # 是否启用联网搜索
+  network_search_enabled: False  # 是否启用联网搜索
   network_search_cnt: 10  # 开启联网搜索时，返回的数量
-  auto_search_param: True  # 是否开启确定搜索参数
+  auto_search_param: False  # 是否开启确定搜索参数

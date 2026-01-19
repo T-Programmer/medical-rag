@@ -44,8 +44,9 @@ def tencent_cloud_search(query: str, cnt: int) -> List[Document]:
             docs.append(doc)
         return docs
 
-    except TencentCloudSDKException as err:
-        print(traceback(err))
+    except Exception as err:
+        print(f"Error in tencent_cloud_search: {err}")
+        traceback.print_exc()
         return []
         
 
