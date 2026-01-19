@@ -48,10 +48,10 @@ embedding:
 
 llm:
   provider: openai
-  model: qwen-plus-2025-12-01
+  model: deepseek-v3.2
   base_url: https://dashscope.aliyuncs.com/compatible-mode/v1
   temperature: 0.1
-  api_key: sk-330db902381c46828a0cc0082a520bd4
+
 
 
 data:

@@ -25,7 +25,7 @@ def main():
     eval_data = load_dataset("json", data_files="data/eval/new_qa_200.jsonl", split="train")
     qwen_llm = ChatOpenAI(
         base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",
-        model="qwen-plus-2025-12-01",
+        model="deepseek-v3.2",
         api_key=os.getenv("DASHSCOPE_API_KEY"),
         temperature=0.0,
         extra_body={
@@ -37,7 +37,7 @@ def main():
         dashscope_api_key=os.getenv("DASHSCOPE_API_KEY")
     )
     eval = RagasRagEvaluate(rag_components=rag, eval_datasets=eval_data, eval_llm=qwen_llm, embedding=qwen_embedding)
-    eval.do_sample(1)  # 根据需要进行快速修改
+    eval.do_sample(30)  # 根据需要进行快速修改
     print(eval.do_evaluate(datasets_query_field_name="new_question", datasets_reference_field_name="answer"))
 
 if __name__ == "__main__":
