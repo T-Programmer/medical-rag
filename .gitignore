@@ -37,6 +37,8 @@ log
 
 .env
 
-data/qa_50000.jsonl
+# 数据文件路径规范化，统一使用绝对路径格式
+/data/*.jsonl
 
-/volumes/*data/qa_50000.jsonl
+# Milvus 向量数据库存储路径
+/volumes/*
